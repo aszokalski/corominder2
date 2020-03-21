@@ -29,6 +29,7 @@ dependencies:
   provider:  ^3.0.0
   location: ^2.3.5
   expandable: any
+  shared_preferences: ^0.4.2
 
 dev_dependencies:
   flutter_test:

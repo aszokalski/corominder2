@@ -68,7 +68,7 @@ class LocationService{
                             //check if the user came back home
                             if(!isAway() && wasAway){
                                 //trigger reminder to wash hands
-                                _notificationService.pushNotification('Wash your hands!');
+                                _notificationService.pushNotification('🏠 Home sweet home. Remember to wash your hands! 🧼✋ ');
                             }
                             _locationController.add(_currentLocation);
                             _apiService.updateLocation(_currentLocation);

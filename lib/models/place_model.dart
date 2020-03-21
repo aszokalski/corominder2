@@ -2,6 +2,7 @@ class Place {
   final double lat;
   final double lng;
   final int radius;
+  int distance;
 
   Place({this.lat, this.lng, this.radius});
 
