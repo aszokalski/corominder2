@@ -4,6 +4,7 @@ import 'dart:math' show cos, sqrt, asin;
 import 'package:location/location.dart';
 import 'package:corominder2/models/user_location.dart';
 import 'package:corominder2/services/notification_service.dart';
+import 'package:corominder2/services/api_service.dart';
 
 
 class LocationService{
@@ -21,40 +22,57 @@ class LocationService{
     //notification service
     NotificationService _notificationService;
 
+    //api service
+    ApiService _apiService;
+
+
+
     //location service
     Location location = Location();
 
-    //stream object that stores changes in _currentLocation
+    //stream object that stores changes in _currentLocation that updates every 10m
     // ignore: close_sinks
     StreamController<UserLocation> _locationController = StreamController<UserLocation>.broadcast();
     Stream<UserLocation> get locationStream => _locationController.stream;
 
     //constructor(takes user's location as an argument)
-    LocationService(this._homeLocation, this._notificationService){
+    LocationService(this._homeLocation, this._notificationService, this._apiService){
         //Request permission
         location.requestPermission().then((granted) {
             if (granted != null) {
                 // If granted listen to the onLocationChanged stream and emit over our controller
                 location.onLocationChanged().listen((locationData) {
                     if (locationData != null) {
-                        //set new location
-                        _currentLocation = UserLocation(
+                        UserLocation _newLocation = UserLocation(
                             lat: locationData.latitude,
                             lng: locationData.longitude,
                         );
 
-                        //check if the user was away from home before changing location
-                        bool wasAway = isAway();
-                        //update location state
-                        updateLocationState();
-                        //check if the user came back home
-                        if(!isAway() && wasAway){
-                            //trigger reminder to wash hands
-                            _notificationService.pushNotification('Wash your hands!');
+                        double _distanceDelta = 0.02;
+                        if(this._currentLocation != null){
+                            _distanceDelta = calculateDistance(_newLocation.lat, _newLocation.lng,
+                                this._currentLocation.lat, this._currentLocation.lng);
                         }
-                        _locationController.add(_currentLocation);
 
 
+                        //updates every 10m
+                        if(_distanceDelta >= 0.005){
+                            print('location update');
+                            //set new location
+                            _currentLocation = _newLocation;
+
+                            //check if the user was away from home before changing location
+                            bool wasAway = isAway();
+                            //update location state
+                            updateLocationState();
+                            //check if the user came back home
+                            if(!isAway() && wasAway){
+                                //trigger reminder to wash hands
+                                _notificationService.pushNotification('Wash your hands!');
+                            }
+                            _locationController.add(_currentLocation);
+                            _apiService.updateLocation(_currentLocation);
+                        }
                     }
                 });
             }
