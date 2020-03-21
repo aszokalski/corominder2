@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:corominder2/models/user_location.dart';
 import 'package:corominder2/models/place_model.dart';
 import 'package:corominder2/services/notification_service.dart';
@@ -20,9 +21,16 @@ class ApiService{
   //notification service
   NotificationService _notificationService;
 
+  //indicates if the object is new
   bool fresh = true;
 
+  //list of saved places
   List<Place> _places;
+
+  //stream object that stores changes in _currentLocation that updates every 10m
+  // ignore: close_sinks
+  StreamController<List<Place>> _placesController = StreamController<List<Place>>.broadcast();
+  Stream<List<Place>> get placesStream => _placesController.stream;
   
   ApiService(this._densityThreshold, this._notificationService){}
 
@@ -55,7 +63,7 @@ class ApiService{
     print('update places begin');
     this._places = await fetchPlaces(http.Client(), location);
     print('places updated');
-    print(_places[0].lat);
+    this._placesController.add(this._places);
     this.amISafe(location);
   }
 
