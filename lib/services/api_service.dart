@@ -25,7 +25,7 @@ class ApiService{
   bool fresh = true;
 
   //list of saved places
-  List<Place> _places;
+  List<Place> places;
 
   //stream object that stores changes in _currentLocation that updates every 10m
   // ignore: close_sinks
@@ -61,9 +61,10 @@ class ApiService{
 
   void updatePlaces(location) async{
     print('update places begin');
-    this._places = await fetchPlaces(http.Client(), location);
+    this.places = await fetchPlaces(http.Client(), location);
     print('places updated');
-    this._placesController.add(this._places);
+    print(places);
+    this._placesController.add(this.places);
     this.amISafe(location);
   }
 
@@ -72,12 +73,12 @@ class ApiService{
     bool safe = true;
     List<Place> threats = [];
 
-    if(_places == null){
+    if(places == null){
       return;
     }
 
-    for(var i = 0; i < this._places.length; i++){
-      Place _place = _places[i];
+    for(var i = 0; i < this.places.length; i++){
+      Place _place = places[i];
       _place.distance = (this.calculateDistance(location.lat, location.lng, _place.lat, _place.lng) * 1000).toInt();
       if(_place.distance <= _place.radius * 3){
         safe = false;
@@ -104,6 +105,8 @@ class ApiService{
       },
       body: body,
     );
+
+    print(response.body);
     return parsePlaces(response.body);
   }
 

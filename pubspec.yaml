@@ -28,8 +28,14 @@ dependencies:
   cupertino_icons: ^0.1.2
   provider:  ^3.0.0
   location: ^2.3.5
-  expandable: any
+  expandable: ^4.1.2
+  splashscreen: any
   shared_preferences: ^0.4.2
+  flutter_local_notifications: any
+  webfeed: ^0.4.2
+  cached_network_image: 2.0.0-rc
+  url_launcher: any
+
 
 dev_dependencies:
   flutter_test:

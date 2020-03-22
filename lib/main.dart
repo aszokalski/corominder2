@@ -1,12 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:corominder2/models/user_location.dart';
+import 'package:corominder2/models/place_model.dart';
 import 'package:corominder2/services/location_service.dart';
 import 'package:corominder2/services/api_service.dart';
 import 'package:corominder2/services/notification_service.dart';
 import 'package:corominder2/preferences.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 void main() => runApp(MyApp());
 
@@ -26,7 +27,7 @@ class _MyAppState extends State<MyApp> {
   static Preferences _preferences = Preferences(); //klasa preferencji. Z niej można ustawiać i czytać dane z pamięci telefonu  (home location)
   static UserLocation _homeLocation = UserLocation(lat: 52.32297, lng: 20.95187); //to startowa pozycja domu. Użytkownik musi ją ustawić tylko przy pierwzym uruchomieniu aplikacji a potem czytamy ją z Preferences
   static NotificationService _notificationService = NotificationService(); //serwis powiadomien
-  static ApiService _apiService = ApiService(30, _notificationService); //Serwis api
+  static ApiService _apiService = ApiService(0, _notificationService); //Serwis api
   static LocationService _locationService = LocationService(_homeLocation, _notificationService, _apiService); //Serwis lokalizacji
   static Stream _locationStream = _locationService.locationStream; //To stream zwracający nową lokalizacje użytkownika kiedy się zmieni o 10m. Zasubskrybowanie powoduje ze wykonuje się to niezależnie od reszty kodu.
   static Stream _placesStream = _apiService.placesStream; //To samo ale z miejscami
@@ -35,10 +36,6 @@ class _MyAppState extends State<MyApp> {
   void _onMapCreated(GoogleMapController controller) {
     _controller.complete(controller);
   }
-
-  //Center to koordynaty na ktorych wyswietli się mapa. Musisz aktualizować to z _locationStream, który zwraca obiekt UserLocation (zobacz sobie w models/user_location.dart)
-  static const LatLng _center = const LatLng(45.521563, -122.677433);
-
 
   @override
   Widget build(BuildContext context) {
@@ -50,24 +47,63 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: Text('Maps Sample App'),
+          title: Text('Crowded Places'),
           backgroundColor: Colors.green[700],
         ),
-        body: GoogleMap(
-          onMapCreated: _onMapCreated,
-          initialCameraPosition: CameraPosition(
-            target: _center,
-            zoom: 11.0,
-          ),
+        body:Center(
+          child: StreamBuilder(
+            stream: _locationStream,
+            builder: (context, snapshot){
+              if(!snapshot.hasData){
+                return CircularProgressIndicator();
+              }
 
-            //to lista kółek, którą musisz updatować przez stream _placesStream. Zwraca on liste obiektów Place (zobacz sobie w models/place_model.dart). Musisz dla każdego miejsca zrobić kółko.
-            circles: Set.from([Circle(
-            circleId: CircleId("a"), //to moze byc cokolwiek
-            center: _center, //lokalizacja miejsca (tu jest center ale zmien na tą z obiektu)
-            radius: 4000, //radius z place
-              //zrób im czerwony kolor
-          )])
+              UserLocation location = snapshot.data;
+              final LatLng _center = LatLng(location.lat, location.lng);
 
+              print(_apiService.places);
+              return StreamBuilder(
+                  stream: _placesStream,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return CircularProgressIndicator();
+                    }
+
+                    List<Place> places = snapshot.data;
+
+                    List<Circle> circle_list =[];
+                    for(var i = 0; i < places.length; i++){
+                      circle_list.add(Circle(
+                        strokeWidth: 5,
+                        strokeColor: Colors.red[700],
+                        circleId: CircleId("a"),
+                        center: LatLng(places[i].lat, places[i].lng),
+                        radius: places[i].radius.toDouble() * 3,
+                      ));
+                    }
+                    circle_list.add(Circle(
+                      strokeWidth: 0,
+                      fillColor: Colors.blue[700],
+                      circleId: CircleId("you"),
+                      center: _center,
+                      radius: 100,
+                    ));
+
+                    Set<Circle> circles = Set.from(circle_list);
+
+
+                    return GoogleMap(
+                        onMapCreated: _onMapCreated,
+                        initialCameraPosition: CameraPosition(
+                            target: _center,
+                            zoom: 11.0,
+                        ),
+                        circles: circles,
+                        );
+                    }
+                  );
+            },
+          )
         ),
       ),
     );
